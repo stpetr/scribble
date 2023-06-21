@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RxJS Paint</title>
+  </head>
+  <body>
+    <div class="container">
+    <div class="paint-wrap">
+      <canvas id="paint"></canvas>
+      <div>
+        <div class="input-field">
+          <input id="range" type="range" min="1" max="4" value="2">
+        </div>
+
+        <div class="input-field">
+          <input id="color" type="color">
+        </div>
+      </div>
+      <div id="used-colors" class="used-colors"></div>
+      <div class="action-buttons">
+        <button id="clear-btn" class="btn clear-btn">Clear</button>
+      </div>
+    </div>
+
+    <template id="used-colors-tpl">
+      <span class="used-colors__item"></span>
+    </template>
+  </div>
+    <script type="module" src="/src/main.ts"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+  </body>
+</html>

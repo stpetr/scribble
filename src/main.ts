@@ -18,6 +18,7 @@ const canvasCtx = canvas.getContext('2d') as CanvasRenderingContext2D
 const thicknessControl = document.getElementById('range') as HTMLInputElement
 const colorControl = document.getElementById('color') as HTMLInputElement
 const usedColorsContainer = document.getElementById('used-colors') as HTMLDivElement
+const usedColorsItemTpl = document.getElementById('used-colors-tpl') as HTMLTemplateElement
 const clearBtn = document.getElementById('clear-btn') as HTMLButtonElement
 const pixelRatio = window.devicePixelRatio
 
@@ -31,6 +32,7 @@ const mouseUp$ = fromEvent<MouseEvent>(canvas, 'mouseup')
 const mouseLeave$ = fromEvent<MouseEvent>(canvas, 'mouseleave')
 const thicknessInput$ = createInputStream(thicknessControl)
 const usedColorsClick$ = fromEvent<MouseEvent>(usedColorsContainer, 'click')
+const colors$ = new BehaviorSubject<string[]>([])
 const currentColor$ = new BehaviorSubject(colorControl.value)
 const clearBtnClick$ = fromEvent<MouseEvent>(clearBtn, 'click')
 
@@ -51,34 +53,28 @@ const stream$ = mouseDown$.pipe(
   }),
 )
 
-const colors: string[] = []
-const usedColors = document.getElementById('used-colors') as HTMLDivElement
-const usedColorsItemTpl = document.getElementById('used-colors-tpl') as HTMLTemplateElement
-const colors$ = new BehaviorSubject<string[]>([])
-
 fromEvent<InputEvent>(colorControl, 'blur').pipe(
   map((e) => {
     const target = e.target as HTMLInputElement
     return target.value
   }),
-).subscribe((color) => {
+  withLatestFrom(colors$)
+).subscribe(([color, colors]) => {
   if (!colors.includes(color)) {
-    colors.push(color)
-    colors$.next([...colors])
+    colors$.next([...colors, color])
   }
   currentColor$.next(color)
 })
 
 colors$.subscribe((newColors) => {
-  console.log('Colors array changed', newColors)
-  usedColors.textContent = ''
+  usedColorsContainer.textContent = ''
   newColors.forEach((el) => {
     const tplClone = usedColorsItemTpl.content.cloneNode(true) as Element
     const item = tplClone.querySelector('.used-colors__item') as HTMLSpanElement
     if (item) {
       item.style.backgroundColor = el
       item.setAttribute('data-color', el)
-      usedColors.appendChild(tplClone)
+      usedColorsContainer.appendChild(tplClone)
     }
   })
 })

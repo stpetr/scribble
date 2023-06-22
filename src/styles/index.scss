@@ -28,5 +28,7 @@
   .action-buttons {
     display: flex;
     justify-content: end;
+    gap: 0.5rem;
+    user-select: none;
   }
 }

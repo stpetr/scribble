@@ -12,6 +12,20 @@ import { createInputStream } from "./helpers.js"
 
 import './styles/index.scss'
 
+type Line = {
+  x: number,
+  y: number,
+  options: {
+    color: string,
+    thickness: string,
+  }
+}
+
+type Stroke = {
+  from: Line,
+  to: Line,
+}
+
 const canvas = document.getElementById('paint') as HTMLCanvasElement
 const canvasRect = canvas.getBoundingClientRect()
 const canvasCtx = canvas.getContext('2d') as CanvasRenderingContext2D
@@ -20,6 +34,8 @@ const colorControl = document.getElementById('color') as HTMLInputElement
 const usedColorsContainer = document.getElementById('used-colors') as HTMLDivElement
 const usedColorsItemTpl = document.getElementById('used-colors-tpl') as HTMLTemplateElement
 const clearBtn = document.getElementById('clear-btn') as HTMLButtonElement
+const undoBtn = document.getElementById('undo-btn') as HTMLButtonElement
+const redoBtn = document.getElementById('redo-btn') as HTMLButtonElement
 const pixelRatio = window.devicePixelRatio
 
 canvas.width = canvasRect.width * pixelRatio
@@ -34,24 +50,53 @@ const thicknessInput$ = createInputStream(thicknessControl)
 const usedColorsClick$ = fromEvent<MouseEvent>(usedColorsContainer, 'click')
 const colors$ = new BehaviorSubject<string[]>([])
 const currentColor$ = new BehaviorSubject(colorControl.value)
+const strokes$ = new BehaviorSubject<Stroke[]>([])
+const redoStrokes$ = new BehaviorSubject<Stroke[]>([])
 const clearBtnClick$ = fromEvent<MouseEvent>(clearBtn, 'click')
+const undoBtnClick$ = fromEvent<MouseEvent>(undoBtn, 'click')
+const redoBtnClick$ = fromEvent<MouseEvent>(redoBtn, 'click')
 
-const stream$ = mouseDown$.pipe(
-  withLatestFrom(thicknessInput$, currentColor$),
-  map(([_, thickness, color]) => ({ thickness, color })),
-  switchMap((options) => {
-    return mouseMove$.pipe(
-      map((e) => ({
-        x: e.offsetX,
-        y: e.offsetY,
-        options,
-      })),
-      pairwise(),
-      takeUntil(mouseUp$),
-      takeUntil(mouseLeave$),
-    )
-  }),
-)
+strokes$
+  .subscribe((strokes) => {
+    canvasCtx.clearRect(0, 0, canvasRect.width, canvasRect.height)
+    strokes.forEach(({ from, to }) => {
+      canvasCtx.lineWidth = +to.options.thickness
+      canvasCtx.strokeStyle = to.options.color
+      canvasCtx.beginPath()
+      canvasCtx.moveTo(from.x, from.y)
+      canvasCtx.lineTo(to.x, to.y)
+      canvasCtx.stroke()
+    })
+    const noStrokes = strokes.length === 0
+    undoBtn.disabled = noStrokes
+    clearBtn.disabled = noStrokes
+  })
+
+redoStrokes$
+  .subscribe((redoStrokes) => {
+    redoBtn.disabled = redoStrokes.length === 0
+  })
+mouseDown$
+  .pipe(
+    withLatestFrom(thicknessInput$, currentColor$),
+    map(([_, thickness, color]) => ({ thickness, color })),
+    switchMap((options) => {
+      return mouseMove$.pipe(
+        map((e) => ({
+          x: e.offsetX,
+          y: e.offsetY,
+          options,
+        })),
+        pairwise(),
+        takeUntil(mouseUp$),
+        takeUntil(mouseLeave$),
+      )
+    }),
+    withLatestFrom(strokes$),
+  )
+  .subscribe(([[from, to], strokes]) => {
+    strokes$.next([...strokes, { from, to }])
+  })
 
 fromEvent<InputEvent>(colorControl, 'blur').pipe(
   map((e) => {
@@ -92,15 +137,32 @@ usedColorsClick$.pipe(
   }
 })
 
-clearBtnClick$.subscribe(() => {
-  canvasCtx.clearRect(0, 0, canvasRect.width, canvasRect.height)
-})
+clearBtnClick$
+  .subscribe(() => {
+    redoStrokes$.next([])
+    strokes$.next([])
+  })
 
-stream$.subscribe(([from, to]) => {
-  canvasCtx.lineWidth = +to.options.thickness
-  canvasCtx.strokeStyle = to.options.color
-  canvasCtx.beginPath()
-  canvasCtx.moveTo(from.x, from.y)
-  canvasCtx.lineTo(to.x, to.y)
-  canvasCtx.stroke()
-})
+undoBtnClick$
+  .pipe(
+    withLatestFrom(strokes$, redoStrokes$),
+  )
+  .subscribe(([_, strokes, redoStrokes]) => {
+    const latestStroke = strokes.slice(-1).pop()
+    if (latestStroke) {
+      redoStrokes$.next([...redoStrokes, latestStroke])
+    }
+    strokes$.next(strokes.slice(0, -1))
+  })
+
+redoBtnClick$
+  .pipe(
+    withLatestFrom(strokes$, redoStrokes$)
+  )
+  .subscribe(([_, strokes, redoStrokes]) => {
+    const latestRedoStroke = redoStrokes.slice(-1).pop()
+    if (latestRedoStroke) {
+      strokes$.next([...strokes, latestRedoStroke])
+      redoStrokes$.next(redoStrokes.slice(0, -1))
+    }
+  })

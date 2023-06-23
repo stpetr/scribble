@@ -10,7 +10,16 @@
   <body>
     <div class="container">
     <div class="paint-wrap">
-      <canvas id="paint"></canvas>
+      <div id="tool-buttons-container" class="tools">
+        <button id="tool-pen-btn" class="btn tool-btn">~</button>
+        <button id="tool-line-btn" class="btn tool-btn">–</button>
+        <button id="tool-rect-btn" class="btn tool-btn">□</button>
+        <button id="tool-circle-btn" class="btn tool-btn">  ⃝</button>
+      </div>
+      <div class="canvas-wrap">
+        <canvas id="paint"></canvas>
+        <canvas id="paint-aux" class="canvas-aux"></canvas>
+      </div>
       <div>
         <div class="input-field">
           <input id="range" type="range" min="1" max="4" value="2">

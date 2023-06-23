@@ -29,6 +29,7 @@ const colorControl = document.getElementById('color') as HTMLInputElement
 const usedColorsContainer = document.getElementById('used-colors') as HTMLDivElement
 const usedColorsItemTpl = document.getElementById('used-colors-tpl') as HTMLTemplateElement
 const clearBtn = document.getElementById('clear-btn') as HTMLButtonElement
+const saveImageBtn = document.getElementById('save-image-btn') as HTMLButtonElement
 const undoBtn = document.getElementById('undo-btn') as HTMLButtonElement
 const redoBtn = document.getElementById('redo-btn') as HTMLButtonElement
 const penToolBtn = document.getElementById('tool-pen-btn') as HTMLButtonElement
@@ -56,6 +57,7 @@ const mouseLeave$ = fromEvent<MouseEvent>(canvas, 'mouseleave')
 const thicknessInput$ = createInputStream(thicknessControl)
 const usedColorsClick$ = fromEvent<MouseEvent>(usedColorsContainer, 'click')
 const clearBtnClick$ = fromEvent<MouseEvent>(clearBtn, 'click')
+const saveImageBtnClick$ = fromEvent<MouseEvent>(saveImageBtn, 'click')
 const undoBtnClick$ = fromEvent<MouseEvent>(undoBtn, 'click')
 const redoBtnClick$ = fromEvent<MouseEvent>(redoBtn, 'click')
 const penToolBtnClick$ = fromEvent<MouseEvent>(penToolBtn, 'click')
@@ -193,6 +195,16 @@ clearBtnClick$
   .subscribe(() => {
     redo$.next([])
     shapes$.next([])
+  })
+
+saveImageBtnClick$
+  .subscribe(() => {
+    const image = canvas.toDataURL()
+    const createEl = document.createElement('a')
+    createEl.href = image
+    createEl.download = 'my-picture'
+    createEl.click()
+    createEl.remove()
   })
 
 undoBtnClick$

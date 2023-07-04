@@ -1,9 +1,9 @@
 import { ctx, auxCtx, clearAuxCanvas } from '../canvas.ts'
 
-import { Coords, Shape } from './types.ts'
+import { Coords, Rect, Shape } from './types.ts'
 
 export class Rectangle implements Shape {
-  private readonly _topLeftPoint: Coords
+  private _topLeftPoint: Coords
   private _width: number
   private _height: number
   private readonly _thickness: number
@@ -38,5 +38,25 @@ export class Rectangle implements Shape {
     ctx.beginPath()
     ctx.rect(this._topLeftPoint.x, this._topLeftPoint.y, this._width, this._height)
     ctx.stroke()
+  }
+
+  move(diffX: number, diffY: number) {
+    this._topLeftPoint = {
+      x: this._topLeftPoint.x + diffX,
+      y: this._topLeftPoint.y + diffY,
+    }
+  }
+
+  isWithinRect(rect: Rect) {
+    const topLeft = this._topLeftPoint
+    const bottomRight = {
+      x: topLeft.x + this._width,
+      y: topLeft.y + this._height,
+    }
+
+    return rect.topLeft.x < bottomRight.x &&
+      rect.bottomRight.x > topLeft.x &&
+      rect.topLeft.y < bottomRight.y &&
+      rect.bottomRight.y > topLeft.y
   }
 }

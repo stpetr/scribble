@@ -1,26 +1,26 @@
 import {
   BehaviorSubject,
+  filter,
   fromEvent,
   map,
+  merge,
   withLatestFrom,
-  merge
-} from "rxjs"
+} from 'rxjs'
 
-import { createInputStream } from "./helpers.js"
+import { createInputStream } from './helpers.js'
+import { shapes$ } from './store.ts'
 import {
   canvas,
   setupCanvas,
   clearAuxCanvas,
   clearCanvas,
 } from './canvas.ts'
-import { PenLine } from './shapes/pen-line.ts'
-import {Line} from "./shapes/line.ts"
-import {Rectangle} from "./shapes/rectangle.ts"
-import {Circle} from "./shapes/circle.ts"
+
+import { Line, PenLine, Rectangle, Circle } from './shapes'
+import { Shape } from './shapes/types.ts'
+import { ShapesSelector } from './tools/shapes-selector.ts'
 
 import './styles/index.scss'
-
-type Shapes = PenLine | Line | Rectangle | Circle
 
 type Tool = 'pen' | 'line' | 'rect' | 'circle'
 
@@ -36,6 +36,7 @@ const penToolBtn = document.getElementById('tool-pen-btn') as HTMLButtonElement
 const lineToolBtn = document.getElementById('tool-line-btn') as HTMLButtonElement
 const rectToolBtn = document.getElementById('tool-rect-btn') as HTMLButtonElement
 const circleToolBtn = document.getElementById('tool-circle-btn') as HTMLButtonElement
+const selectModeControl = document.getElementById('select-mode') as HTMLInputElement
 
 const toolsButtons = [
   penToolBtn,
@@ -44,10 +45,9 @@ const toolsButtons = [
   circleToolBtn,
 ]
 
-const shapes$ = new BehaviorSubject<Shapes[]>([])
 const colors$ = new BehaviorSubject<string[]>([])
 const currentColor$ = new BehaviorSubject(colorControl.value)
-const redo$ = new BehaviorSubject<Shapes[]>([])
+const redo$ = new BehaviorSubject<Shape[]>([])
 const currentTool$ = new BehaviorSubject<Tool>('pen')
 
 const mouseMove$ = fromEvent<MouseEvent>(canvas, 'mousemove')
@@ -64,8 +64,11 @@ const penToolBtnClick$ = fromEvent<MouseEvent>(penToolBtn, 'click')
 const lineToolBtnClick$ = fromEvent<MouseEvent>(lineToolBtn, 'click')
 const rectToolBtnClick$ = fromEvent<MouseEvent>(rectToolBtn, 'click')
 const circleToolBtnClick$ = fromEvent<MouseEvent>(circleToolBtn, 'click')
+const selectModeChange$ = fromEvent(selectModeControl, 'input')
 
-const activeShape$ = new BehaviorSubject<Shapes | null>(null)
+const activeShape$ = new BehaviorSubject<Shape | null>(null)
+const activeMode$ = new BehaviorSubject<'draw' | 'select'>('draw')
+const shapesSelector$ = new BehaviorSubject<ShapesSelector>(new ShapesSelector())
 
 setupCanvas()
 
@@ -77,7 +80,9 @@ shapes$
     })
   })
 
-currentTool$.subscribe((currentTool) => {
+currentTool$.pipe(
+  withLatestFrom(shapesSelector$),
+).subscribe(([currentTool, shapesSelector]) => {
   const activeClass = 'red'
   toolsButtons.forEach((btn) => btn.classList.remove(activeClass))
   if (currentTool === 'pen') {
@@ -89,6 +94,10 @@ currentTool$.subscribe((currentTool) => {
   } else if (currentTool === 'circle') {
     circleToolBtn.classList.add(activeClass)
   }
+
+  activeMode$.next('draw')
+  selectModeControl.checked = false
+  shapesSelector.reset()
 })
 
 redo$
@@ -96,8 +105,12 @@ redo$
     redoBtn.disabled = redo.length === 0
   })
 
+// Draw
 mouseDown$
   .pipe(
+    withLatestFrom(activeMode$),
+    filter(([_, mode]) => mode === 'draw'),
+    map(([e]) => e),
     withLatestFrom(currentTool$, thicknessInput$, currentColor$),
     map(([e, currentTool, thickness, color]) => {
       if (currentTool === 'line') {
@@ -116,6 +129,9 @@ mouseDown$
 
 mouseMove$
   .pipe(
+    withLatestFrom(activeMode$),
+    filter(([_, mode]) => mode === 'draw'),
+    map(([e]) => e),
     withLatestFrom(activeShape$),
   )
   .subscribe(([e, activeShape]) => {
@@ -126,6 +142,9 @@ mouseMove$
 
 merge(mouseUp$, mouseLeave$)
   .pipe(
+    withLatestFrom(activeMode$),
+    filter(([_, mode]) => mode === 'draw'),
+    map(([e]) => e),
     withLatestFrom(activeShape$, shapes$),
   )
   .subscribe(([_, activeShape, shapes]) => {
@@ -136,60 +155,123 @@ merge(mouseUp$, mouseLeave$)
     }
   })
 
-fromEvent<InputEvent>(colorControl, 'blur').pipe(
-  map((e) => {
-    const target = e.target as HTMLInputElement
-    return target.value
-  }),
-  withLatestFrom(colors$)
-).subscribe(([color, colors]) => {
-  if (!colors.includes(color)) {
-    colors$.next([...colors, color])
-  }
-  currentColor$.next(color)
-})
-
-penToolBtnClick$.subscribe(() => {
-  currentTool$.next('pen')
-})
-
-lineToolBtnClick$.subscribe(() => {
-  currentTool$.next('line')
-})
-
-rectToolBtnClick$.subscribe(() => {
-  currentTool$.next('rect')
-})
-
-circleToolBtnClick$.subscribe(() => {
-  currentTool$.next('circle')
-})
-
-colors$.subscribe((newColors) => {
-  usedColorsContainer.textContent = ''
-  newColors.forEach((el) => {
-    const tplClone = usedColorsItemTpl.content.cloneNode(true) as Element
-    const item = tplClone.querySelector('.used-colors__item') as HTMLSpanElement
-    if (item) {
-      item.style.backgroundColor = el
-      item.setAttribute('data-color', el)
-      usedColorsContainer.appendChild(tplClone)
+// Select tool
+mouseDown$
+  .pipe(
+    withLatestFrom(activeMode$, shapesSelector$),
+    filter(([_, mode]) => mode === 'select'),
+    map(([e, _, shapesSelector]) => ({ e, shapesSelector })),
+  )
+  .subscribe(({ e, shapesSelector}) => {
+    if (shapesSelector.mode === 'selected' && shapesSelector.isOverSelectedArea(e.offsetX, e.offsetY)) {
+      shapesSelector.startMoving(e.offsetX, e.offsetY)
+    } else {
+      shapesSelector.startSelecting(e.offsetX, e.offsetY)
     }
   })
-})
 
-usedColorsClick$.pipe(
-  map((e) => {
-    const target = e.target as HTMLInputElement
-    const color = target.getAttribute('data-color')
-    return color || null
+mouseMove$
+  .pipe(
+    withLatestFrom(activeMode$, shapesSelector$, shapes$),
+    filter(([_, mode]) => mode === 'select'),
+    map(([e, _, shapesSelector, shapes]) => ({ e, shapesSelector, shapes })),
+  )
+  .subscribe(({e, shapesSelector, shapes}) => {
+    shapesSelector.onMouseMove(e.offsetX, e.offsetY)
+
+    if (shapesSelector.mode === 'select') {
+      shapesSelector.selectedShapes = shapes.filter((shape) => shape.isWithinRect(shapesSelector.getRect()))
+    } else if (shapesSelector.mode === 'move') {
+      shapes$.next([...shapes])
+    }
   })
-).subscribe((color) => {
-  if (color) {
+
+mouseUp$
+  .pipe(
+    withLatestFrom(activeMode$, shapesSelector$),
+    filter(([_, mode]) => mode === 'select'),
+    map(([_, __, shapesSelector]) => ({ shapesSelector })),
+  )
+  .subscribe(({ shapesSelector }) => {
+    if (shapesSelector.mode === 'move') {
+      shapesSelector.stopMoving()
+    } else {
+      shapesSelector.stopSelecting()
+    }
+  })
+
+activeMode$
+  .pipe(
+    withLatestFrom(shapesSelector$),
+  )
+  .subscribe(([mode, shapesSelector]) => {
+    if (mode !== 'select') {
+      shapesSelector.mode = null
+    }
+  })
+
+fromEvent<InputEvent>(colorControl, 'blur')
+  .pipe(
+    map((e) => {
+      const target = e.target as HTMLInputElement
+      return target.value
+    }),
+    withLatestFrom(colors$)
+  )
+  .subscribe(([color, colors]) => {
+    if (!colors.includes(color)) {
+      colors$.next([...colors, color])
+    }
     currentColor$.next(color)
-    colorControl.value = color
-  }
-})
+  })
+
+penToolBtnClick$
+  .subscribe(() => {
+    currentTool$.next('pen')
+  })
+
+lineToolBtnClick$
+  .subscribe(() => {
+    currentTool$.next('line')
+  })
+
+rectToolBtnClick$
+  .subscribe(() => {
+    currentTool$.next('rect')
+  })
+
+circleToolBtnClick$
+  .subscribe(() => {
+    currentTool$.next('circle')
+  })
+
+colors$
+  .subscribe((newColors) => {
+    usedColorsContainer.textContent = ''
+    newColors.forEach((el) => {
+      const tplClone = usedColorsItemTpl.content.cloneNode(true) as Element
+      const item = tplClone.querySelector('.used-colors__item') as HTMLSpanElement
+      if (item) {
+        item.style.backgroundColor = el
+        item.setAttribute('data-color', el)
+        usedColorsContainer.appendChild(tplClone)
+      }
+    })
+  })
+
+usedColorsClick$
+  .pipe(
+    map((e) => {
+      const target = e.target as HTMLInputElement
+      const color = target.getAttribute('data-color')
+      return color || null
+    }))
+  .subscribe((color) => {
+    if (color) {
+      currentColor$.next(color)
+      colorControl.value = color
+    }
+  })
 
 clearBtnClick$
   .subscribe(() => {
@@ -228,5 +310,18 @@ redoBtnClick$
     if (latestRedo) {
       shapes$.next([...shapes, latestRedo])
       redo$.next(redo.slice(0, -1))
+    }
+  })
+
+selectModeChange$
+  .pipe(
+    withLatestFrom(shapesSelector$),
+  )
+  .subscribe(([e, shapesSelector]) => {
+    const target = e.target as HTMLInputElement
+    const nextMode = target.checked ? 'select' : 'draw'
+    activeMode$.next(nextMode)
+    if (nextMode === 'draw') {
+      shapesSelector.reset()
     }
   })

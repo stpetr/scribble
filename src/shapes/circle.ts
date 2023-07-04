@@ -1,6 +1,7 @@
 import { ctx, auxCtx, clearAuxCanvas } from '../canvas.ts'
+import { isRectIntersectsCircle } from '../helpers.ts'
 
-import { Coords, Shape } from './types.ts'
+import { Coords, Rect, Shape } from './types.ts'
 
 export class Circle implements Shape {
   private readonly _startingPoint: Coords
@@ -61,5 +62,14 @@ export class Circle implements Shape {
     ctx.beginPath()
     ctx.arc(this._center.x, this._center.y, this._radius, 0, Math.PI * 2)
     ctx.stroke()
+  }
+
+  move(diffX: number, diffY: number) {
+    this._center.x += diffX
+    this._center.y += diffY
+  }
+
+  isWithinRect(rect: Rect) {
+    return isRectIntersectsCircle(rect, { center: this._center, radius: this._radius })
   }
 }

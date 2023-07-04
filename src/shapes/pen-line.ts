@@ -1,9 +1,10 @@
 import { ctx, auxCtx, clearAuxCanvas } from '../canvas.ts'
+import { getRectPoints, isPointWithinRect, isPolygonsIntersect } from '../helpers.ts'
 
-import { Coords, Shape } from './types.ts'
+import { Coords, Rect, Shape } from './types.ts'
 
 export class PenLine implements Shape {
-  private readonly _startingPoint: Coords
+  private _startingPoint: Coords
   private readonly _thickness: number
   private readonly _color: string
   private readonly _points: Coords[] = []
@@ -46,5 +47,23 @@ export class PenLine implements Shape {
 
       prevCoords = to
     })
+  }
+
+  move(diffX: number, diffY: number) {
+    this._startingPoint = { x: this._startingPoint.x + diffX, y: this._startingPoint.y + diffY }
+    this._points.forEach((point) => {
+      point.x += diffX
+      point.y += diffY
+    })
+  }
+
+  isWithinRect(rect: Rect) {
+    const points = [this._startingPoint, ...this._points]
+    const pointWithingRect = points.find((point) => isPointWithinRect(point, rect))
+    if (pointWithingRect) {
+      return true
+    }
+    const rectPoints = getRectPoints(rect)
+    return isPolygonsIntersect([this._startingPoint, ...this._points], rectPoints)
   }
 }

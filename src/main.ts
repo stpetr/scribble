@@ -16,13 +16,13 @@ import {
   clearCanvas,
 } from './canvas.ts'
 
-import { Line, PenLine, Rectangle, Circle } from './shapes'
+import { Line, PenLine, Rectangle, Circle, Ellipse } from './shapes'
 import { Shape } from './shapes/types.ts'
 import { ShapesSelector } from './tools/shapes-selector.ts'
 
 import './styles/index.scss'
 
-type Tool = 'pen' | 'line' | 'rect' | 'circle'
+type Tool = 'pen' | 'line' | 'rect' | 'circle' | 'ellipse'
 
 const thicknessControl = document.getElementById('range') as HTMLInputElement
 const colorControl = document.getElementById('color') as HTMLInputElement
@@ -36,6 +36,7 @@ const penToolBtn = document.getElementById('tool-pen-btn') as HTMLButtonElement
 const lineToolBtn = document.getElementById('tool-line-btn') as HTMLButtonElement
 const rectToolBtn = document.getElementById('tool-rect-btn') as HTMLButtonElement
 const circleToolBtn = document.getElementById('tool-circle-btn') as HTMLButtonElement
+const ellipseToolBtn = document.getElementById('tool-ellipse-btn') as HTMLButtonElement
 const selectModeControl = document.getElementById('select-mode') as HTMLInputElement
 
 const toolsButtons = [
@@ -43,6 +44,7 @@ const toolsButtons = [
   lineToolBtn,
   rectToolBtn,
   circleToolBtn,
+  ellipseToolBtn,
 ]
 
 const colors$ = new BehaviorSubject<string[]>([])
@@ -64,6 +66,7 @@ const penToolBtnClick$ = fromEvent<MouseEvent>(penToolBtn, 'click')
 const lineToolBtnClick$ = fromEvent<MouseEvent>(lineToolBtn, 'click')
 const rectToolBtnClick$ = fromEvent<MouseEvent>(rectToolBtn, 'click')
 const circleToolBtnClick$ = fromEvent<MouseEvent>(circleToolBtn, 'click')
+const ellipseToolBtnClick$ = fromEvent<MouseEvent>(ellipseToolBtn, 'click')
 const selectModeChange$ = fromEvent(selectModeControl, 'input')
 
 const activeShape$ = new BehaviorSubject<Shape | null>(null)
@@ -93,6 +96,8 @@ currentTool$.pipe(
     rectToolBtn.classList.add(activeClass)
   } else if (currentTool === 'circle') {
     circleToolBtn.classList.add(activeClass)
+  } else if (currentTool === 'ellipse') {
+    ellipseToolBtn.classList.add(activeClass)
   }
 
   activeMode$.next('draw')
@@ -119,6 +124,8 @@ mouseDown$
         return new Rectangle(e.offsetX, e.offsetY, +thickness, color)
       } else if (currentTool === 'circle') {
         return new Circle(e.offsetX, e.offsetY, +thickness, color)
+      } else if (currentTool === 'ellipse') {
+        return new Ellipse(e.offsetX, e.offsetY, +thickness, color)
       }
       return new PenLine(e.offsetX, e.offsetY, +thickness, color)
     }),
@@ -243,6 +250,11 @@ rectToolBtnClick$
 circleToolBtnClick$
   .subscribe(() => {
     currentTool$.next('circle')
+  })
+
+ellipseToolBtnClick$
+  .subscribe(() => {
+    currentTool$.next('ellipse')
   })
 
 colors$

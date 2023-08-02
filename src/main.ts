@@ -7,7 +7,7 @@ import {
   withLatestFrom,
 } from 'rxjs'
 
-import { createInputStream } from './helpers.js'
+import { createInputStream } from './helpers/streams.ts'
 import { shapes$ } from './store.ts'
 import {
   canvas,
@@ -16,8 +16,8 @@ import {
   clearCanvas,
 } from './canvas.ts'
 
-import { Line, PenLine, Rectangle, Circle, Ellipse } from './shapes'
-import { Shape } from './shapes/types.ts'
+import { LineTool, PenLineTool, RectangleTool, CircleTool, EllipseTool } from './shapes'
+import { ShapeTool } from './shapes/types.ts'
 import { ShapesSelector } from './tools/shapes-selector.ts'
 
 import './styles/index.scss'
@@ -49,7 +49,7 @@ const toolsButtons = [
 
 const colors$ = new BehaviorSubject<string[]>([])
 const currentColor$ = new BehaviorSubject(colorControl.value)
-const redo$ = new BehaviorSubject<Shape[]>([])
+const redo$ = new BehaviorSubject<ShapeTool[]>([])
 const currentTool$ = new BehaviorSubject<Tool>('pen')
 
 const mouseMove$ = fromEvent<MouseEvent>(canvas, 'mousemove')
@@ -69,7 +69,7 @@ const circleToolBtnClick$ = fromEvent<MouseEvent>(circleToolBtn, 'click')
 const ellipseToolBtnClick$ = fromEvent<MouseEvent>(ellipseToolBtn, 'click')
 const selectModeChange$ = fromEvent(selectModeControl, 'input')
 
-const activeShape$ = new BehaviorSubject<Shape | null>(null)
+const activeShape$ = new BehaviorSubject<ShapeTool | null>(null)
 const activeMode$ = new BehaviorSubject<'draw' | 'select'>('draw')
 const shapesSelector$ = new BehaviorSubject<ShapesSelector>(new ShapesSelector())
 
@@ -119,15 +119,15 @@ mouseDown$
     withLatestFrom(currentTool$, thicknessInput$, currentColor$),
     map(([e, currentTool, thickness, color]) => {
       if (currentTool === 'line') {
-        return new Line(e.offsetX, e.offsetY, +thickness, color)
+        return new LineTool(e.offsetX, e.offsetY, +thickness, color)
       } else if (currentTool === 'rect') {
-        return new Rectangle(e.offsetX, e.offsetY, +thickness, color)
+        return new RectangleTool(e.offsetX, e.offsetY, +thickness, color)
       } else if (currentTool === 'circle') {
-        return new Circle(e.offsetX, e.offsetY, +thickness, color)
+        return new CircleTool(e.offsetX, e.offsetY, +thickness, color)
       } else if (currentTool === 'ellipse') {
-        return new Ellipse(e.offsetX, e.offsetY, +thickness, color)
+        return new EllipseTool(e.offsetX, e.offsetY, +thickness, color)
       }
-      return new PenLine(e.offsetX, e.offsetY, +thickness, color)
+      return new PenLineTool(e.offsetX, e.offsetY, +thickness, color)
     }),
   )
   .subscribe((shape) => {
@@ -187,7 +187,7 @@ mouseMove$
     shapesSelector.onMouseMove(e.offsetX, e.offsetY)
 
     if (shapesSelector.mode === 'select') {
-      shapesSelector.selectedShapes = shapes.filter((shape) => shape.isWithinRect(shapesSelector.getRect()))
+      shapesSelector.selectedShapes = shapes.filter((shape) => shape.isWithinRect(shapesSelector.area))
     } else if (shapesSelector.mode === 'move') {
       shapes$.next([...shapes])
     }

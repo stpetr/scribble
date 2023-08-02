@@ -1,19 +1,6 @@
-export type Coords = {
-  x: number,
-  y: number,
-}
+import { Rect } from '../helpers/shapes'
 
-export type Rect = {
-  topLeft: Coords,
-  bottomRight: Coords,
-}
-
-export type Circle = {
-  center: Coords,
-  radius: number,
-}
-
-export interface Shape {
+export interface ShapeTool {
   prerender: () => void
   render: () => void
   move: (x: number, y: number) => void

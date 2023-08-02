@@ -1,5 +1,5 @@
 import { BehaviorSubject } from 'rxjs'
 
-import { Shape } from './shapes/types.ts'
+import { ShapeTool } from './shapes/types.ts'
 
-export const shapes$ = new BehaviorSubject<Shape[]>([])
+export const shapes$ = new BehaviorSubject<ShapeTool[]>([])

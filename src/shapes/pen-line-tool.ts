@@ -1,29 +1,31 @@
 import { ctx, auxCtx, clearAuxCanvas } from '../canvas.ts'
-import { getRectPoints, isPointWithinRect, isPolygonsIntersect } from '../helpers.ts'
 
-import { Coords, Rect, Shape } from './types.ts'
+import { ShapeTool } from './types.ts'
+import { Polygon } from '../helpers/shapes/polygon.ts'
+import { Rect } from '../helpers/shapes'
+import { pointRect, polygonPolygon } from '../helpers/intersections'
 
-export class PenLine implements Shape {
-  private _startingPoint: Coords
+export class PenLineTool implements ShapeTool {
+  private readonly _shape: Polygon
   private readonly _thickness: number
   private readonly _color: string
-  private readonly _points: Coords[] = []
+
   constructor(x: number, y: number, thickness: number, color: string) {
-    this._startingPoint = { x, y }
+    this._shape = new Polygon([{ x, y }])
     this._thickness = thickness
     this._color = color
   }
 
   public onMouseMove(x: number, y: number) {
-    this._points.push({ x, y })
+    this._shape.addPoint({ x, y })
     this.prerender()
   }
 
   public prerender() {
     clearAuxCanvas()
 
-    let prevPoint = this._startingPoint
-    this._points.forEach((to) => {
+    let prevPoint = this._shape.points[0]
+    this._shape.points.forEach((to) => {
       auxCtx.lineWidth = this._thickness
       auxCtx.strokeStyle = this._color
       auxCtx.beginPath()
@@ -35,9 +37,9 @@ export class PenLine implements Shape {
   }
 
   render() {
-    let prevCoords = this._startingPoint
+    let prevCoords = this._shape.points[0]
 
-    this._points.forEach((to) => {
+    this._shape.points.forEach((to) => {
       ctx.lineWidth = this._thickness
       ctx.strokeStyle = this._color
       ctx.beginPath()
@@ -50,20 +52,15 @@ export class PenLine implements Shape {
   }
 
   move(diffX: number, diffY: number) {
-    this._startingPoint = { x: this._startingPoint.x + diffX, y: this._startingPoint.y + diffY }
-    this._points.forEach((point) => {
-      point.x += diffX
-      point.y += diffY
-    })
+    this._shape.move(diffX, diffY)
   }
 
   isWithinRect(rect: Rect) {
-    const points = [this._startingPoint, ...this._points]
-    const pointWithingRect = points.find((point) => isPointWithinRect(point, rect))
+    const pointWithingRect = this._shape.points.find((point) => pointRect(point, rect))
     if (pointWithingRect) {
       return true
     }
-    const rectPoints = getRectPoints(rect)
-    return isPolygonsIntersect([this._startingPoint, ...this._points], rectPoints)
+
+    return polygonPolygon(this._shape.points, rect.points)
   }
 }

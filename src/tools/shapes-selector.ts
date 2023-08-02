@@ -1,14 +1,16 @@
 import { auxCtx, clearAuxCanvas } from '../canvas.ts'
-import { Coords, Rect, Shape } from '../shapes/types.ts'
-import { isPointWithinRect } from '../helpers.ts'
+
+import { Point } from '../types.ts'
+import { ShapeTool } from '../shapes/types.ts'
+import { Rect } from '../helpers/shapes'
+import { pointRect } from '../helpers/intersections'
 
 type Mode = 'select' | 'selected' | 'move' | null
 export class ShapesSelector {
   private _mode: Mode = null
-  private _topLeft: Coords = { x: 0, y: 0 }
-  private _bottomRight: Coords = { x: 0, y: 0 }
-  public prevMovePoint?: Coords
-  selectedShapes: Shape[] = []
+  public readonly area: Rect
+  public prevMovePoint?: Point
+  selectedShapes: ShapeTool[] = []
 
   get mode() {
     return this._mode
@@ -17,11 +19,14 @@ export class ShapesSelector {
   set mode(mode: Mode) {
     this._mode = mode
   }
-  constructor() {}
+  constructor() {
+    this.area = new Rect({ x: 0, y: 0 }, 0, 0)
+  }
 
   startSelecting(x: number, y: number) {
-    this._topLeft = { x, y }
-    this._bottomRight = { x, y }
+    this.area.startPoint = { x, y }
+    this.area.width = 0
+    this.area.height = 0
     this.mode = 'select'
     clearAuxCanvas()
   }
@@ -47,20 +52,12 @@ export class ShapesSelector {
 
   onMouseMove(x: number, y: number) {
     if (this.mode === 'select') {
-      this._bottomRight = { x, y }
+      this.area.endPoint = { x, y }
     } else if (this.mode === 'move') {
       if (this.prevMovePoint) {
         const diffX = x - this.prevMovePoint.x
         const diffY = y - this.prevMovePoint.y
-
-        this._topLeft = {
-          x: this._topLeft.x + diffX,
-          y: this._topLeft.y + diffY,
-        }
-        this._bottomRight = {
-          x: this._bottomRight.x + diffX,
-          y: this._bottomRight.y + diffY,
-        }
+        this.area.move(diffX, diffY)
       } else {
         console.error('No prevMovePoint')
       }
@@ -92,8 +89,9 @@ export class ShapesSelector {
   reset() {
     this.mode = null
     this.selectedShapes = []
-    this._topLeft = { x: 0, y: 0 }
-    this._bottomRight = { x: 0, y: 0 }
+    this.area.startPoint = { x: 0, y: 0 }
+    this.area.width = 0
+    this.area.height = 0
     this.render()
   }
 
@@ -103,26 +101,18 @@ export class ShapesSelector {
       auxCtx.lineWidth = 2
       auxCtx.strokeStyle = '#ccc'
       auxCtx.beginPath()
-      auxCtx.setLineDash([5])
-      auxCtx.strokeRect(this._topLeft.x, this._topLeft.y, this._bottomRight.x - this._topLeft.x, this._bottomRight.y - this._topLeft.y)
-      auxCtx.setLineDash([])
-    }
-  }
-
-  getRect(): Rect {
-    return {
-      topLeft: {
-        x: Math.min(this._topLeft.x, this._bottomRight.x),
-        y: Math.min(this._topLeft.y, this._bottomRight.y),
-      },
-      bottomRight: {
-        x: Math.max(this._topLeft.x, this._bottomRight.x),
-        y: Math.max(this._topLeft.y, this._bottomRight.y),
-      },
+      // auxCtx.setLineDash([5])
+      auxCtx.strokeRect(
+        this.area.topLeft.x,
+        this.area.topLeft.y,
+        this.area.width,
+        this.area.height
+      )
+      // auxCtx.setLineDash([])
     }
   }
 
   isOverSelectedArea(x: number, y: number) {
-    return isPointWithinRect({ x, y }, this.getRect())
+    return pointRect({ x, y }, this.area)
   }
 }

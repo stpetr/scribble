@@ -4,14 +4,15 @@ import { Point } from '../types.ts'
 import { Circle, Rect } from '../helpers/shapes'
 import { rectCircle } from '../helpers/intersections'
 import { ShapeTool } from './types.ts'
+import { ShapeToolBase } from './shape-tool-base.ts'
 
-export class CircleTool implements ShapeTool {
+export class CircleTool extends ShapeToolBase implements ShapeTool {
   private readonly _shape: Circle
   private readonly _startingPoint: Point
   private readonly _thickness: number
-  private readonly _color: string
 
   constructor(x: number, y: number, thickness: number, color: string) {
+    super()
     this._shape = new Circle({ x, y }, 0)
     this._startingPoint = { x, y }
     this._thickness = thickness

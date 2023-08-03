@@ -3,13 +3,14 @@ import { ctx, auxCtx, clearAuxCanvas } from '../canvas.ts'
 import { ShapeTool } from './types.ts'
 import { Rect } from '../helpers/shapes'
 import { rectRect } from '../helpers/intersections'
+import { ShapeToolBase } from './shape-tool-base.ts'
 
-export class RectangleTool implements ShapeTool {
+export class RectangleTool extends ShapeToolBase implements ShapeTool {
   private readonly _shape: Rect
   private readonly _thickness: number
-  private readonly _color: string
 
   constructor(x: number, y: number, thickness: number, color: string) {
+    super()
     this._shape = new Rect({ x, y }, 0, 0)
     this._thickness = thickness
     this._color = color

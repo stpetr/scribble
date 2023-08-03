@@ -285,6 +285,19 @@ usedColorsClick$
     }
   })
 
+currentColor$
+  .pipe(
+    withLatestFrom(shapesSelector$),
+  )
+  .subscribe(([currentColor, shapesSelector]) => {
+    if (shapesSelector.selectedShapes.length) {
+      shapesSelector.selectedShapes.forEach((shape) => {
+        shape.color = currentColor
+        shape.render()
+      })
+    }
+  })
+
 clearBtnClick$
   .subscribe(() => {
     redo$.next([])

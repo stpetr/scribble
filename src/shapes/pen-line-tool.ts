@@ -4,13 +4,14 @@ import { ShapeTool } from './types.ts'
 import { Polygon } from '../helpers/shapes/polygon.ts'
 import { Rect } from '../helpers/shapes'
 import { pointRect, polygonPolygon } from '../helpers/intersections'
+import { ShapeToolBase } from './shape-tool-base.ts'
 
-export class PenLineTool implements ShapeTool {
+export class PenLineTool extends ShapeToolBase implements ShapeTool {
   private readonly _shape: Polygon
   private readonly _thickness: number
-  private readonly _color: string
 
   constructor(x: number, y: number, thickness: number, color: string) {
+    super()
     this._shape = new Polygon([{ x, y }])
     this._thickness = thickness
     this._color = color

@@ -101,14 +101,14 @@ export class ShapesSelector {
       auxCtx.lineWidth = 2
       auxCtx.strokeStyle = '#ccc'
       auxCtx.beginPath()
-      // auxCtx.setLineDash([5])
+      auxCtx.setLineDash([5])
       auxCtx.strokeRect(
         this.area.topLeft.x,
         this.area.topLeft.y,
         this.area.width,
         this.area.height
       )
-      // auxCtx.setLineDash([])
+      auxCtx.setLineDash([])
     }
   }
 

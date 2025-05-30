@@ -3,13 +3,14 @@ import { ctx, auxCtx, clearAuxCanvas } from '../canvas.ts'
 import { Line, Rect } from '../helpers/shapes'
 import { pointRect, polygonPolygon } from '../helpers/intersections'
 import { ShapeTool } from './types.ts'
+import { ShapeToolBase } from './shape-tool-base.ts'
 
-export class LineTool implements ShapeTool {
+export class LineTool extends ShapeToolBase implements ShapeTool {
   private readonly _shape: Line
-  private readonly _thickness: number
-  private readonly _color: string
+  protected readonly _thickness: number
 
   constructor(x: number, y: number, thickness: number, color: string) {
+    super()
     this._shape = new Line({ x, y }, { x, y })
     this._thickness = thickness
     this._color = color

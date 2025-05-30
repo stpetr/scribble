@@ -3,14 +3,15 @@ import { ctx, auxCtx, clearAuxCanvas } from '../canvas.ts'
 import { Point } from '../types.ts'
 import { Ellipse } from '../helpers/shapes'
 import { ShapeTool } from './types.ts'
+import { ShapeToolBase } from './shape-tool-base.ts'
 
-export class EllipseTool implements ShapeTool {
+export class EllipseTool extends ShapeToolBase implements ShapeTool {
   private readonly _shape: Ellipse
   private readonly _startingPoint: Point
-  private readonly _thickness: number
-  private readonly _color: string
+  protected readonly _thickness: number
 
   constructor(x: number, y: number, thickness: number, color: string) {
+    super()
     this._shape = new Ellipse({ x, y }, 0, 0)
     this._startingPoint = { x, y }
     this._thickness = thickness

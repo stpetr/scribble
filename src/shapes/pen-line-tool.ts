@@ -8,7 +8,7 @@ import { ShapeToolBase } from './shape-tool-base.ts'
 
 export class PenLineTool extends ShapeToolBase implements ShapeTool {
   private readonly _shape: Polygon
-  private readonly _thickness: number
+  protected readonly _thickness: number
 
   constructor(x: number, y: number, thickness: number, color: string) {
     super()

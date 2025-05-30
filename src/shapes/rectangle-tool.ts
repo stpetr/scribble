@@ -7,7 +7,7 @@ import { ShapeToolBase } from './shape-tool-base.ts'
 
 export class RectangleTool extends ShapeToolBase implements ShapeTool {
   private readonly _shape: Rect
-  private readonly _thickness: number
+  protected readonly _thickness: number
 
   constructor(x: number, y: number, thickness: number, color: string) {
     super()

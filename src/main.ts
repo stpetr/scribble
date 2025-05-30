@@ -287,14 +287,28 @@ usedColorsClick$
 
 currentColor$
   .pipe(
-    withLatestFrom(shapesSelector$),
+    withLatestFrom(shapesSelector$, shapes$),
   )
-  .subscribe(([currentColor, shapesSelector]) => {
+  .subscribe(([currentColor, shapesSelector, shapes]) => {
     if (shapesSelector.selectedShapes.length) {
       shapesSelector.selectedShapes.forEach((shape) => {
         shape.color = currentColor
-        shape.render()
       })
+      shapes$.next([...shapes])
+    }
+  })
+
+thicknessInput$
+  .pipe(
+    withLatestFrom(shapesSelector$, shapes$),
+  )
+  .subscribe(([thickness, shapesSelector, shapes]) => {
+
+    if (shapesSelector.selectedShapes.length) {
+      shapesSelector.selectedShapes.forEach((shape) => {
+        shape.thickness = +thickness
+      })
+      shapes$.next([...shapes])
     }
   })
 

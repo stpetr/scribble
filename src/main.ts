@@ -364,3 +364,6 @@ selectModeChange$
       shapesSelector.reset()
     }
   })
+
+// @todo remove
+console.log('Testing runner on dev env')

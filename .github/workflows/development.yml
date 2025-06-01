@@ -23,4 +23,6 @@ jobs:
       - run: git pull origin $GITHUB_REF
       - run: npm ci
       - run: npm run build
-      - run: rsync -a --no-perms --no-times --checksum --delete -v --chown=www-data:www-data ./dist/ ${{ secrets.WEB_ROOT_PATH }}
+      - run: chmod -R 775 ./dist
+      - run: chown -R www-data:www-data ./dist
+      - run: rsync -a --checksum --delete -v ./dist/ ${{ secrets.WEB_ROOT_PATH }}
